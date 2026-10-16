@@ -1,0 +1,43 @@
+project:
+  name: "digital-payments-monitoring-reconciliation"
+  canonical_timezone: "UTC"
+  presentation_timezone: "Asia/Ho_Chi_Minh"
+
+streaming_slo:
+  freshness_p95_seconds: 30
+  freshness_p99_seconds: 60
+  baseline_events_per_sec: 5
+  burst_events_per_sec: 50
+  watermark_lateness_seconds: 120
+  stuck_timeout_seconds: 300
+
+partner_degradation:
+  short_window_seconds: 60
+  long_window_seconds: 300
+  min_volume_short: 20
+  min_volume_long: 100
+  alert_success_rate_threshold: 0.90
+  alert_baseline_drop_threshold: 0.08
+  recovery_success_rate_threshold: 0.95
+  recovery_consecutive_windows: 2
+
+data_quality:
+  circuit_breaker_error_rate: 0.05
+  circuit_breaker_min_batch_size: 50
+
+reconciliation_eod:
+  cutoff_time_local: "23:59:59"
+  initial_run_local: "01:00:00"
+  grace_period_deadline_local: "06:00:00"
+
+simulator:
+  default_seed: 20260930
+  scenario: "normal"
+  rates:
+    duplicate_event_rate: 0.005 # 0.5%
+    late_event_short_rate: 0.010 # 1.0% (5s - 120s: within watermark)
+    late_event_long_rate: 0.002 # 0.2% (> 120s: triggers DLQ / Correction path)
+    out_of_order_rate: 0.005 # 0.5%
+    missing_terminal_rate: 0.003 # 0.3% (triggers STUCK > 5m)
+    poison_record_rate: 0.002 # 0.2% (negative amount / invalid enum)
+    terminal_conflict_rate: 0.001 # 0.1% (COMPLETED followed by FAILED)
