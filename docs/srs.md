@@ -184,6 +184,25 @@
 
 ---
 
+### 5.3. Thiết kế Open Table Format — Delta Lake Specification (LOCKED)
+
+Dự án sử dụng **Delta Lake (`io.delta:delta-spark`)** làm Open Table Format tiêu chuẩn xuyên suốt cả 3 lớp Medallion (Bronze, Silver, Gold), lưu trữ vật lý dưới dạng Parquet + `_delta_log` trên **MinIO** (Local) và **AWS S3** (Cloud Showcase).
+
+1. **Lý do chọn Delta Lake (thay vì Parquet thuần hoặc Iceberg):**
+   - **ACID Transactions cho Streaming & Batch:** Cho phép vừa ghi luồng Spark Structured Streaming (micro-batch), vừa chạy job Batch hợp nhất DLQ hoặc đọc dữ liệu từ `dbt`/Metabase mà không bị lỗi đọc dữ liệu dở dang (dirty reads / partial writes).
+   - **Upsert (`MERGE INTO`):** Phục vụ trực tiếp cho việc cập nhật trạng thái giao dịch tại bảng `silver_transactions_current` (Q44) và hợp nhất dữ liệu trễ từ `silver_late_events_dlq` (Q37).
+   - **Data Contracts & Schema Enforcement (Q24, Q34):** Hỗ trợ sẵn cơ chế `CHECK` constraints vật lý (ví dụ: `ALTER TABLE ... ADD CONSTRAINT amount_non_negative CHECK (amount_minor >= 0)`) và tự động tiến hóa schema an toàn (`mergeSchema = true` đối với cột mới).
+   - **Time Travel & Auditability (Q22, Q39):** Truy vết lịch sử thay đổi của dữ liệu qua từng version trong `_delta_log`, hỗ trợ đắc lực cho yêu cầu kiểm toán tài chính và đối soát.
+   - **Tương thích hoàn hảo với Dual-Track Topology (Q43):** Tương thích nguyên bản (native) 100% giữa PySpark Open-Source ở Local Docker và Databricks Free Edition trên Cloud.
+
+2. **Chiến lược Partitioning, Z-Ordering & File Maintenance (Case C24):**
+   - **Bronze Layer (`bronze_payment_events`):** Partition theo ngày tiếp nhận (`ingestion_date` dạng `YYYY-MM-DD`). Không partition theo `merchant_id` hay `user_id` để tránh bùng nổ số lượng thư mục và lỗi _small file problem_ khi chạy streaming.
+   - **Silver History (`silver_payment_events_history`):** Partition theo `event_date` (`UTC`).
+   - **Silver Current State (`silver_transactions_current`):** Không chia partition quá nhỏ để tối ưu tốc độ quét khi chạy lệnh `MERGE INTO`; sử dụng **Z-Ordering** (hoặc Liquid Clustering trên Databricks) theo `transaction_id` và `current_lifecycle_state` (giúp truy vấn các giao dịch đang `PROCESSING` quá 5 phút cực nhanh).
+   - **Table Maintenance:** Định kỳ chạy lệnh `OPTIMIZE` (gộp các file Parquet nhỏ sinh ra từ micro-batch streaming) và `VACUUM` (dọn dẹp các file không còn tham chiếu sau thời hạn lưu trữ) thông qua Airflow DAG.
+
+---
+
 ## 6. PHÂN BỔ ĐỘ SÂU CÁC ENGINEERING CASES (D1 / D2 / D3 SCOPE)
 
 - **D1 (Implement + Automated Test + Portfolio Evidence/Demo):**
