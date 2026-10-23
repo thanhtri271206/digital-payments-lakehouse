@@ -41,3 +41,15 @@ simulator:
     missing_terminal_rate: 0.003 # 0.3% (triggers STUCK > 5m)
     poison_record_rate: 0.002 # 0.2% (negative amount / invalid enum)
     terminal_conflict_rate: 0.001 # 0.1% (COMPLETED followed by FAILED)
+
+
+kafka:
+  bootstrap_servers: "localhost:9092"
+  topic_payment_events: "payment.events.raw"
+  topic_ledger_cdc: "wallet.ledger.cdc"
+
+minio:
+  endpoint_url: "http://localhost:9000"
+  access_key: "admin"
+  secret_key: "password123"
+  bucket_ground_truth: "ground-truth"
