@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -73,18 +74,30 @@ class PaymentEvent(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     event_id: str = Field(description="Unique UUID for this specific event")
-    transaction_id: str = Field(description="Correlation UUID across the lifecycle of a payment")
+    transaction_id: str = Field(
+        description="Correlation UUID across the lifecycle of a payment"
+    )
     event_type: str = Field(description="Current status transition event type")
     event_time: datetime = Field(description="Timestamp when event occurred (UTC)")
-    ingestion_time: datetime = Field(description="Timestamp when platform/Kafka ingested the event (UTC)")
-    user_id: str = Field(description="Unique identifier for the user initiating the payment")
+    ingestion_time: datetime = Field(
+        description="Timestamp when platform/Kafka ingested the event (UTC)"
+    )
+    user_id: str = Field(
+        description="Unique identifier for the user initiating the payment"
+    )
     merchant_id: str = Field(description="Merchant receiving the payment")
     payment_channel: str = Field(description="External payment channel or bank partner")
     payment_method: str = Field(description="Method used: BANK_TRANSFER, CARD, etc.")
-    amount_minor: int = Field(description="Integer minor unit amount, e.g. 100000 VND (BIGINT)")
+    amount_minor: int = Field(
+        description="Integer minor unit amount, e.g. 100000 VND (BIGINT)"
+    )
     currency: str = Field(default="VND", description="ISO currency code, default VND")
-    status_reason: Optional[str] = Field(default=None, description="Detailed failure or cancellation reason")
-    producer_version: str = Field(default="v1.0", description="Simulator / producer semantic version")
+    status_reason: str | None = Field(
+        default=None, description="Detailed failure or cancellation reason"
+    )
+    producer_version: str = Field(
+        default="v1.0", description="Simulator / producer semantic version"
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert model to a JSON-compatible dictionary with ISO 8601 timestamps."""
@@ -108,15 +121,23 @@ class GroundTruthRecord(BaseModel):
     amount_minor: int = Field(description="Intended true amount in minor units")
     currency: str = Field(default="VND")
     initiated_at: datetime = Field(description="Timestamp when initiated")
-    final_state: str = Field(description="Expected final business state: COMPLETED, FAILED, PROCESSING, etc.")
+    final_state: str = Field(
+        description="Expected final business state: COMPLETED, FAILED, PROCESSING, etc."
+    )
     is_anomaly: bool = Field(description="Whether any fault was deliberately injected")
-    anomaly_types: list[str] = Field(default_factory=list, description="List of anomaly types injected")
+    anomaly_types: list[str] = Field(
+        default_factory=list, description="List of anomaly types injected"
+    )
     expected_resolution: str = Field(
         description="Anticipated handling resolution (e.g., NORMAL_SETTLEMENT, ROUTED_TO_DLQ, ROUTED_TO_QUARANTINE, STUCK_PROCESSING, LIFECYCLE_EXCEPTION, WATERMARK_DEDUPLICATED)"
     )
-    event_count: int = Field(description="Total number of events emitted for this transaction")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary audit details about the anomaly")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    event_count: int = Field(
+        description="Total number of events emitted for this transaction"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary audit details about the anomaly"
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
         """Convert model to a JSON-compatible dictionary."""

@@ -10,23 +10,22 @@ from __future__ import annotations
 
 import argparse
 import copy
-from datetime import datetime, timedelta, timezone
 import io
 import json
 import logging
-from pathlib import Path
 import random
-from typing import Any, Optional
 import uuid
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Any
 
-from faker import Faker
 import yaml
+from faker import Faker
 
 from simulator.models import (
     AnomalyType,
     EventType,
     GroundTruthRecord,
-    LIFECYCLE_RANKS,
     PaymentChannel,
     PaymentEvent,
     PaymentMethod,
@@ -66,7 +65,11 @@ class PaymentSimulator:
         self.faker = Faker()
 
         # Ingestion rates & anomaly probabilities from config
-        rates = self.config.get("simulator", {}).get("rates", {}) if isinstance(self.config, dict) else {}
+        rates = (
+            self.config.get("simulator", {}).get("rates", {})
+            if isinstance(self.config, dict)
+            else {}
+        )
         self.duplicate_rate = rates.get("duplicate_event_rate", 0.005)
         self.late_short_rate = rates.get("late_event_short_rate", 0.010)
         self.late_long_rate = rates.get("late_event_long_rate", 0.002)
@@ -76,15 +79,25 @@ class PaymentSimulator:
         self.terminal_conflict_rate = rates.get("terminal_conflict_rate", 0.001)
 
         # Connection configs
-        kafka_cfg = self.config.get("kafka", {}) if isinstance(self.config, dict) else {}
-        self.kafka_bootstrap_servers = kafka_cfg.get("bootstrap_servers", "localhost:9092")
-        self.kafka_topic_payment_events = kafka_cfg.get("topic_payment_events", "payment.events.raw")
+        kafka_cfg = (
+            self.config.get("kafka", {}) if isinstance(self.config, dict) else {}
+        )
+        self.kafka_bootstrap_servers = kafka_cfg.get(
+            "bootstrap_servers", "localhost:9092"
+        )
+        self.kafka_topic_payment_events = kafka_cfg.get(
+            "topic_payment_events", "payment.events.raw"
+        )
 
-        minio_cfg = self.config.get("minio", {}) if isinstance(self.config, dict) else {}
+        minio_cfg = (
+            self.config.get("minio", {}) if isinstance(self.config, dict) else {}
+        )
         self.minio_endpoint = minio_cfg.get("endpoint_url", "http://localhost:9000")
         self.minio_access_key = minio_cfg.get("access_key", "admin")
         self.minio_secret_key = minio_cfg.get("secret_key", "password123")
-        self.minio_ground_truth_bucket = minio_cfg.get("bucket_ground_truth", "ground-truth")
+        self.minio_ground_truth_bucket = minio_cfg.get(
+            "bucket_ground_truth", "ground-truth"
+        )
 
         # Fixed master entity pools for realistic relationships
         self.users = [f"usr_{1000 + i}" for i in range(200)]
@@ -96,10 +109,12 @@ class PaymentSimulator:
     def _load_config(self, path: Path) -> dict[str, Any]:
         """Safely load YAML configuration file."""
         if not path.exists():
-            logger.warning("Config file %s not found. Using default configurations.", path)
+            logger.warning(
+                "Config file %s not found. Using default configurations.", path
+            )
             return {}
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 return yaml.safe_load(f) or {}
         except Exception as e:
             logger.error("Failed to parse YAML config at %s: %s", path, e)
@@ -181,17 +196,27 @@ class PaymentSimulator:
 
         # Standard amount in integer minor units (VND)
         amount_choices = [
-            10_000, 20_000, 50_000, 100_000, 200_000,
-            350_000, 500_000, 1_000_000, 2_500_000, 5_000_000,
+            10_000,
+            20_000,
+            50_000,
+            100_000,
+            200_000,
+            350_000,
+            500_000,
+            1_000_000,
+            2_500_000,
+            5_000_000,
         ]
         true_amount_minor = self.rng.choice(amount_choices)
 
         # For POISON_RECORD: deliberately set amount_minor = -50000
-        event_amount_minor = -50000 if anomaly == AnomalyType.POISON_RECORD.value else true_amount_minor
+        event_amount_minor = (
+            -50000 if anomaly == AnomalyType.POISON_RECORD.value else true_amount_minor
+        )
 
-        t0 = base_time if base_time is not None else datetime.now(timezone.utc)
+        t0 = base_time if base_time is not None else datetime.now(UTC)
         if t0.tzinfo is None:
-            t0 = t0.replace(tzinfo=timezone.utc)
+            t0 = t0.replace(tzinfo=UTC)
 
         events: list[PaymentEvent] = []
         meta: dict[str, Any] = {}
@@ -471,7 +496,7 @@ class PaymentSimulator:
             expected_resolution=expected_resolution,
             event_count=len(events),
             metadata=meta,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         if as_dict:
@@ -509,13 +534,15 @@ class PaymentSimulator:
         all_events: list[PaymentEvent] = []
         all_ground_truth: list[GroundTruthRecord] = []
 
-        curr_time = base_time if base_time is not None else datetime.now(timezone.utc)
+        curr_time = base_time if base_time is not None else datetime.now(UTC)
         if curr_time.tzinfo is None:
-            curr_time = curr_time.replace(tzinfo=timezone.utc)
+            curr_time = curr_time.replace(tzinfo=UTC)
 
         # Baseline throughput ~ 5 events/sec (or dt ~ 0.2s between transactions)
         for _ in range(n_transactions):
-            tx_events, gt = self.generate_transaction(base_time=curr_time, as_dict=False)
+            tx_events, gt = self.generate_transaction(
+                base_time=curr_time, as_dict=False
+            )
             all_events.extend(tx_events)  # type: ignore[arg-type]
             all_ground_truth.append(gt)
             # Advance clock slightly for subsequent transactions
@@ -567,46 +594,60 @@ class PaymentSimulator:
 
             if suffix == ".parquet":
                 self._save_parquet(records_data, path)
-                logger.info("Exported %d Ground Truth records to Parquet at %s", len(records_data), path)
+                logger.info(
+                    "Exported %d Ground Truth records to Parquet at %s",
+                    len(records_data),
+                    path,
+                )
             else:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(records_data, f, indent=2, default=str)
-                logger.info("Exported %d Ground Truth records to JSON at %s", len(records_data), path)
+                logger.info(
+                    "Exported %d Ground Truth records to JSON at %s",
+                    len(records_data),
+                    path,
+                )
 
         # 2. MinIO S3 Export
         if minio_bucket is not None:
             self._upload_to_minio(records_data, bucket=minio_bucket, key=minio_key)
 
-    def _save_parquet(self, data: list[dict[str, Any]], target_file_or_buffer: Any) -> None:
+    def _save_parquet(
+        self, data: list[dict[str, Any]], target_file_or_buffer: Any
+    ) -> None:
         """Helper to write dictionaries to Parquet format using pyarrow with strict schema."""
         try:
             import pyarrow as pa
             import pyarrow.parquet as pq
 
-            gt_schema = pa.schema([
-                ("transaction_id", pa.string()),
-                ("user_id", pa.string()),
-                ("merchant_id", pa.string()),
-                ("payment_channel", pa.string()),
-                ("payment_method", pa.string()),
-                ("amount_minor", pa.int64()),
-                ("currency", pa.string()),
-                ("initiated_at", pa.string()),
-                ("final_state", pa.string()),
-                ("is_anomaly", pa.bool_()),
-                ("anomaly_types", pa.list_(pa.string())),
-                ("expected_resolution", pa.string()),
-                ("event_count", pa.int64()),
-                ("metadata", pa.string()),
-                ("created_at", pa.string()),
-            ])
+            gt_schema = pa.schema(
+                [
+                    ("transaction_id", pa.string()),
+                    ("user_id", pa.string()),
+                    ("merchant_id", pa.string()),
+                    ("payment_channel", pa.string()),
+                    ("payment_method", pa.string()),
+                    ("amount_minor", pa.int64()),
+                    ("currency", pa.string()),
+                    ("initiated_at", pa.string()),
+                    ("final_state", pa.string()),
+                    ("is_anomaly", pa.bool_()),
+                    ("anomaly_types", pa.list_(pa.string())),
+                    ("expected_resolution", pa.string()),
+                    ("event_count", pa.int64()),
+                    ("metadata", pa.string()),
+                    ("created_at", pa.string()),
+                ]
+            )
 
             # Sanitize records: convert nested dicts (like metadata) to JSON string for Parquet compatibility
             sanitized = []
             for item in data:
                 row = dict(item)
                 if isinstance(row.get("metadata"), dict):
-                    row["metadata"] = json.dumps(row["metadata"]) if row["metadata"] else "{}"
+                    row["metadata"] = (
+                        json.dumps(row["metadata"]) if row["metadata"] else "{}"
+                    )
                 if isinstance(row.get("initiated_at"), datetime):
                     row["initiated_at"] = row["initiated_at"].isoformat()
                 if isinstance(row.get("created_at"), datetime):
@@ -638,7 +679,7 @@ class PaymentSimulator:
                 config=Config(signature_version="s3v4"),
             )
 
-            timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             object_key = key or f"ground_truth_{timestamp_str}.parquet"
 
             parquet_buffer = io.BytesIO()
@@ -650,7 +691,11 @@ class PaymentSimulator:
                 Key=object_key,
                 Body=parquet_buffer.getvalue(),
             )
-            logger.info("Successfully uploaded Ground Truth to MinIO: s3://%s/%s", bucket, object_key)
+            logger.info(
+                "Successfully uploaded Ground Truth to MinIO: s3://%s/%s",
+                bucket,
+                object_key,
+            )
         except Exception as e:
             logger.warning(
                 "Could not upload Ground Truth to MinIO (endpoint=%s, bucket=%s): %s",
@@ -691,7 +736,12 @@ class PaymentSimulator:
                 producer.poll(0)
 
             producer.flush(timeout=15.0)
-            logger.info("Delivered %d/%d events to Kafka topic '%s'", delivered_count, len(events), topic)
+            logger.info(
+                "Delivered %d/%d events to Kafka topic '%s'",
+                delivered_count,
+                len(events),
+                topic,
+            )
         except Exception as e:
             logger.error("Kafka publishing error: %s", e)
             raise
@@ -719,20 +769,42 @@ class PaymentSimulator:
         print("-" * 70)
         print("Sample First 3 Emitted Events:")
         for i, ev in enumerate(events[:3], 1):
-            print(f"[{i}] Event: {ev['event_type']} | Tx: {ev['transaction_id'][:8]}.. | Amount: {ev['amount_minor']} {ev['currency']} | Time: {ev['event_time']}")
+            print(
+                f"[{i}] Event: {ev['event_type']} | Tx: {ev['transaction_id'][:8]}.. | Amount: {ev['amount_minor']} {ev['currency']} | Time: {ev['event_time']}"
+            )
         print("=" * 70)
 
 
 def main() -> None:
     """CLI Entrypoint for the Payment Simulator."""
-    parser = argparse.ArgumentParser(description="Payment Simulator for Digital Payments Lakehouse")
-    parser.add_argument("--config", default="config/config.yaml", help="Path to config.yaml")
-    parser.add_argument("--seed", type=int, default=20260930, help="Deterministic RNG seed")
-    parser.add_argument("--n-tx", type=int, default=50, help="Number of transactions to generate")
-    parser.add_argument("--kafka-topic", default="payment.events.raw", help="Target Kafka topic")
-    parser.add_argument("--export-gt", default=None, help="Local export path for Ground Truth (.json or .parquet)")
-    parser.add_argument("--minio-bucket", default=None, help="MinIO bucket to upload Ground Truth")
-    parser.add_argument("--dry-run", action="store_true", help="Print dry-run output to stdout instead of sending to Kafka")
+    parser = argparse.ArgumentParser(
+        description="Payment Simulator for Digital Payments Lakehouse"
+    )
+    parser.add_argument(
+        "--config", default="config/config.yaml", help="Path to config.yaml"
+    )
+    parser.add_argument(
+        "--seed", type=int, default=20260930, help="Deterministic RNG seed"
+    )
+    parser.add_argument(
+        "--n-tx", type=int, default=50, help="Number of transactions to generate"
+    )
+    parser.add_argument(
+        "--kafka-topic", default="payment.events.raw", help="Target Kafka topic"
+    )
+    parser.add_argument(
+        "--export-gt",
+        default=None,
+        help="Local export path for Ground Truth (.json or .parquet)",
+    )
+    parser.add_argument(
+        "--minio-bucket", default=None, help="MinIO bucket to upload Ground Truth"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print dry-run output to stdout instead of sending to Kafka",
+    )
 
     args = parser.parse_args()
 

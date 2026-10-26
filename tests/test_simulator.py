@@ -1,8 +1,8 @@
 """Unit and Integration Tests for PaymentSimulator."""
 
-from datetime import datetime, timezone
 import json
 from pathlib import Path
+
 import pyarrow.parquet as pq
 import pytest
 
@@ -10,7 +10,6 @@ from simulator.models import (
     AnomalyType,
     EventType,
     GroundTruthRecord,
-    PaymentEvent,
 )
 from simulator.payment_generator import PaymentSimulator
 
@@ -185,24 +184,26 @@ def test_generate_transaction_terminal_conflict(simulator: PaymentSimulator) -> 
     assert len(tx_ids) == 1
 
 
-def test_generate_batch_export_json_and_parquet(tmp_path: Path, simulator: PaymentSimulator) -> None:
+def test_generate_batch_export_json_and_parquet(
+    tmp_path: Path, simulator: PaymentSimulator
+) -> None:
     """Verify batch generation and export to both JSON and Parquet formats."""
     json_path = tmp_path / "ground_truth.json"
     parquet_path = tmp_path / "ground_truth.parquet"
 
     # Export to JSON
-    events, gt_json = simulator.generate_batch(
+    _events, _gt_json = simulator.generate_batch(
         n_transactions=15,
         export_gt_path=json_path,
         dry_run=False,
     )
     assert json_path.exists()
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
         assert len(data) == 15
 
     # Export to Parquet
-    _, gt_parquet = simulator.generate_batch(
+    _, _gt_parquet = simulator.generate_batch(
         n_transactions=15,
         export_gt_path=parquet_path,
         dry_run=False,
@@ -215,7 +216,9 @@ def test_generate_batch_export_json_and_parquet(tmp_path: Path, simulator: Payme
     assert "anomaly_types" in table.column_names
 
 
-def test_dry_run_stdout(capsys: pytest.CaptureFixture[str], simulator: PaymentSimulator) -> None:
+def test_dry_run_stdout(
+    capsys: pytest.CaptureFixture[str], simulator: PaymentSimulator
+) -> None:
     """Verify dry_run prints clean execution summary to stdout."""
     simulator.generate_batch(n_transactions=10, dry_run=True)
     captured = capsys.readouterr()

@@ -7,12 +7,12 @@ partitions by ingestion_date, and writes append-only to Delta Lake MinIO S3A.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
+import yaml
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
     coalesce,
@@ -28,7 +28,6 @@ from pyspark.sql.types import (
     StringType,
     TimestampType,
 )
-import yaml
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,7 +42,7 @@ def load_config(config_path: str | Path = "config/config.yaml") -> dict[str, Any
     if not path.exists():
         logger.warning("Config %s not found. Using defaults.", config_path)
         return {}
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
@@ -74,7 +73,9 @@ def get_spark_session(
         or minio_cfg.get("secret_key", "password123")
     )
 
-    logger.info("Initializing SparkSession: endpoint=%s, access_key=%s", endpoint, access_key)
+    logger.info(
+        "Initializing SparkSession: endpoint=%s, access_key=%s", endpoint, access_key
+    )
 
     packages = [
         "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3",
@@ -87,7 +88,10 @@ def get_spark_session(
         SparkSession.builder.appName(app_name)
         .config("spark.jars.packages", ",".join(packages))
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
         .config("spark.hadoop.fs.s3a.endpoint", endpoint)
         .config("spark.hadoop.fs.s3a.access.key", access_key)
         .config("spark.hadoop.fs.s3a.secret.key", secret_key)
@@ -113,7 +117,9 @@ def read_kafka_stream(
     starting_offsets: str = "earliest",
 ) -> DataFrame:
     """Read streaming events from Kafka topic."""
-    logger.info("Connecting Kafka stream: brokers=%s, topic=%s", bootstrap_servers, topic)
+    logger.info(
+        "Connecting Kafka stream: brokers=%s, topic=%s", bootstrap_servers, topic
+    )
     return (
         spark.readStream.format("kafka")
         .option("kafka.bootstrap.servers", bootstrap_servers)
@@ -154,8 +160,13 @@ def transform_raw_to_bronze(raw_df: DataFrame) -> DataFrame:
         .withColumn("event_id", get_json_object(payload_col, "$.event_id"))
         .withColumn("transaction_id", get_json_object(payload_col, "$.transaction_id"))
         .withColumn("event_type", get_json_object(payload_col, "$.event_type"))
-        .withColumn("event_time", to_timestamp(get_json_object(payload_col, "$.event_time")))
-        .withColumn("ingestion_time", to_timestamp(get_json_object(payload_col, "$.ingestion_time")))
+        .withColumn(
+            "event_time", to_timestamp(get_json_object(payload_col, "$.event_time"))
+        )
+        .withColumn(
+            "ingestion_time",
+            to_timestamp(get_json_object(payload_col, "$.ingestion_time")),
+        )
         .withColumn(
             "ingestion_date",
             date_format(
@@ -194,7 +205,11 @@ def write_bronze_stream(
     processing_time: str | None = None,
 ) -> Any:
     """Write stream to Delta Lake partitioned by ingestion_date."""
-    logger.info("Writing stream to Delta Lake: target=%s, checkpoint=%s", target_location, checkpoint_location)
+    logger.info(
+        "Writing stream to Delta Lake: target=%s, checkpoint=%s",
+        target_location,
+        checkpoint_location,
+    )
 
     writer = (
         df.writeStream.format("delta")
@@ -214,10 +229,18 @@ def write_bronze_stream(
 
 def main() -> None:
     """CLI Entrypoint for Bronze Payment Events Ingestion."""
-    parser = argparse.ArgumentParser(description="Bronze Payment Events Spark Structured Streaming")
-    parser.add_argument("--config", default="config/config.yaml", help="Path to config.yaml")
-    parser.add_argument("--kafka-bootstrap", default=None, help="Kafka bootstrap servers")
-    parser.add_argument("--kafka-topic", default="payment.events.raw", help="Kafka topic")
+    parser = argparse.ArgumentParser(
+        description="Bronze Payment Events Spark Structured Streaming"
+    )
+    parser.add_argument(
+        "--config", default="config/config.yaml", help="Path to config.yaml"
+    )
+    parser.add_argument(
+        "--kafka-bootstrap", default=None, help="Kafka bootstrap servers"
+    )
+    parser.add_argument(
+        "--kafka-topic", default="payment.events.raw", help="Kafka topic"
+    )
     parser.add_argument("--minio-endpoint", default=None, help="MinIO S3 endpoint URL")
     parser.add_argument(
         "--target-table",
@@ -251,7 +274,9 @@ def main() -> None:
         or os.getenv("KAFKA_BOOTSTRAP_SERVERS")
         or kafka_cfg.get("bootstrap_servers", "kafka:29092")
     )
-    topic = args.kafka_topic or kafka_cfg.get("topic_payment_events", "payment.events.raw")
+    topic = args.kafka_topic or kafka_cfg.get(
+        "topic_payment_events", "payment.events.raw"
+    )
 
     spark = get_spark_session(
         app_name="bronze-payment-events-ingest",
@@ -260,7 +285,9 @@ def main() -> None:
     )
 
     try:
-        raw_stream = read_kafka_stream(spark, bootstrap_servers=bootstrap_servers, topic=topic)
+        raw_stream = read_kafka_stream(
+            spark, bootstrap_servers=bootstrap_servers, topic=topic
+        )
         bronze_df = transform_raw_to_bronze(raw_stream)
 
         is_available_now = args.trigger_mode == "availableNow"
@@ -272,7 +299,11 @@ def main() -> None:
             processing_time=args.processing_time if not is_available_now else None,
         )
 
-        logger.info("Stream started. Awaiting termination (ID=%s, RunID=%s)...", query.id, query.runId)
+        logger.info(
+            "Stream started. Awaiting termination (ID=%s, RunID=%s)...",
+            query.id,
+            query.runId,
+        )
         query.awaitTermination()
         logger.info("Stream finished processing batch successfully.")
     finally:

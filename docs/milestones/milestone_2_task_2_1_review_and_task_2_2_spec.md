@@ -102,33 +102,41 @@ def get_spark_session(app_name: str = "BronzePaymentEventsIngestion") -> SparkSe
     builder = (
         SparkSession.builder.appName(app_name)
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
         .config("spark.hadoop.fs.s3a.endpoint", minio_endpoint)
         .config("spark.hadoop.fs.s3a.access.key", minio_access_key)
         .config("spark.hadoop.fs.s3a.secret.key", minio_secret_key)
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        .config(
+            "spark.hadoop.fs.s3a.aws.credentials.provider",
+            "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
+        )
     )
     return builder.getOrCreate()
 
 
-PAYMENT_EVENT_JSON_SCHEMA = StructType([
-    StructField("event_id", StringType(), True),
-    StructField("transaction_id", StringType(), True),
-    StructField("event_type", StringType(), True),
-    StructField("event_time", TimestampType(), True),
-    StructField("ingestion_time", TimestampType(), True),
-    StructField("user_id", StringType(), True),
-    StructField("merchant_id", StringType(), True),
-    StructField("payment_channel", StringType(), True),
-    StructField("payment_method", StringType(), True),
-    StructField("amount_minor", LongType(), True),
-    StructField("currency", StringType(), True),
-    StructField("status_reason", StringType(), True),
-    StructField("producer_version", StringType(), True),
-])
+PAYMENT_EVENT_JSON_SCHEMA = StructType(
+    [
+        StructField("event_id", StringType(), True),
+        StructField("transaction_id", StringType(), True),
+        StructField("event_type", StringType(), True),
+        StructField("event_time", TimestampType(), True),
+        StructField("ingestion_time", TimestampType(), True),
+        StructField("user_id", StringType(), True),
+        StructField("merchant_id", StringType(), True),
+        StructField("payment_channel", StringType(), True),
+        StructField("payment_method", StringType(), True),
+        StructField("amount_minor", LongType(), True),
+        StructField("currency", StringType(), True),
+        StructField("status_reason", StringType(), True),
+        StructField("producer_version", StringType(), True),
+    ]
+)
 
 
 def run_ingestion(
@@ -176,7 +184,9 @@ def run_ingestion(
         col("payload_struct.event_type").alias("event_type"),
         col("payload_struct.event_time").alias("event_time"),
         col("payload_struct.ingestion_time").alias("ingestion_time"),
-        date_format(col("payload_struct.ingestion_time"), "yyyy-MM-dd").alias("ingestion_date"),
+        date_format(col("payload_struct.ingestion_time"), "yyyy-MM-dd").alias(
+            "ingestion_date"
+        ),
         current_timestamp().alias("ingested_at_bronze"),
     )
 

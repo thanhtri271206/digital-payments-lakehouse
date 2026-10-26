@@ -1,21 +1,22 @@
 """Payment Simulator Package."""
 
 from typing import Any
+
 from simulator.models import (
+    LIFECYCLE_RANKS,
     AnomalyType,
     EventType,
     GroundTruthRecord,
-    LIFECYCLE_RANKS,
     PaymentChannel,
     PaymentEvent,
     PaymentMethod,
 )
 
 __all__ = [
+    "LIFECYCLE_RANKS",
     "AnomalyType",
     "EventType",
     "GroundTruthRecord",
-    "LIFECYCLE_RANKS",
     "PaymentChannel",
     "PaymentEvent",
     "PaymentMethod",

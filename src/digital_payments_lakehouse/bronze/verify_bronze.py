@@ -12,9 +12,9 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count
 import yaml
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import count
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +28,7 @@ def load_config(config_path: str | Path = "config/config.yaml") -> dict[str, Any
     path = Path(config_path)
     if not path.exists():
         return {}
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
@@ -46,7 +46,9 @@ def get_spark_session(
         or minio_cfg.get("endpoint_url", "http://minio:9000")
     )
     access_key = os.getenv("MINIO_ACCESS_KEY") or minio_cfg.get("access_key", "admin")
-    secret_key = os.getenv("MINIO_SECRET_KEY") or minio_cfg.get("secret_key", "password123")
+    secret_key = os.getenv("MINIO_SECRET_KEY") or minio_cfg.get(
+        "secret_key", "password123"
+    )
 
     packages = [
         "io.delta:delta-spark_2.12:3.2.0",
@@ -58,7 +60,10 @@ def get_spark_session(
         SparkSession.builder.appName("verify-bronze-payment-events")
         .config("spark.jars.packages", ",".join(packages))
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
         .config("spark.hadoop.fs.s3a.endpoint", endpoint)
         .config("spark.hadoop.fs.s3a.access.key", access_key)
         .config("spark.hadoop.fs.s3a.secret.key", secret_key)
@@ -75,7 +80,9 @@ def get_spark_session(
     return spark
 
 
-def verify_bronze_table(spark: SparkSession, table_path: str = "s3a://bronze/payment_events") -> None:
+def verify_bronze_table(
+    spark: SparkSession, table_path: str = "s3a://bronze/payment_events"
+) -> None:
     """Verify Delta table exists, display schema, total row count, and sample records."""
     print("=" * 80)
     print(f"VERIFYING BRONZE DELTA LAKE TABLE: {table_path}")
@@ -92,15 +99,21 @@ def verify_bronze_table(spark: SparkSession, table_path: str = "s3a://bronze/pay
     df.printSchema()
 
     total_count = df.count()
-    print(f"\n--- 2. RECORD COUNT ---")
+    print("\n--- 2. RECORD COUNT ---")
     print(f"Total Rows in Bronze Table: {total_count}")
 
     print("\n--- 3. PARTITION DISTRIBUTION (ingestion_date) ---")
-    partition_df = df.groupBy("ingestion_date").agg(count("*").alias("count")).orderBy("ingestion_date")
+    partition_df = (
+        df.groupBy("ingestion_date")
+        .agg(count("*").alias("count"))
+        .orderBy("ingestion_date")
+    )
     partition_df.show(truncate=False)
 
     print("\n--- 4. EVENT TYPE BREAKDOWN ---")
-    df.groupBy("event_type").agg(count("*").alias("count")).orderBy("count", ascending=False).show(truncate=False)
+    df.groupBy("event_type").agg(count("*").alias("count")).orderBy(
+        "count", ascending=False
+    ).show(truncate=False)
 
     print("\n--- 5. SAMPLE 5 RECORDS ---")
     sample_cols = [
@@ -120,9 +133,13 @@ def verify_bronze_table(spark: SparkSession, table_path: str = "s3a://bronze/pay
 def main() -> None:
     """CLI Entrypoint for Verification."""
     parser = argparse.ArgumentParser(description="Verify Bronze Delta Table")
-    parser.add_argument("--config", default="config/config.yaml", help="Path to config.yaml")
+    parser.add_argument(
+        "--config", default="config/config.yaml", help="Path to config.yaml"
+    )
     parser.add_argument("--minio-endpoint", default=None, help="MinIO endpoint")
-    parser.add_argument("--table-path", default="s3a://bronze/payment_events", help="Delta table path")
+    parser.add_argument(
+        "--table-path", default="s3a://bronze/payment_events", help="Delta table path"
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
