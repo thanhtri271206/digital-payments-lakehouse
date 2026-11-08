@@ -1,0 +1,8 @@
+=== FAULT INJECTION DISTRIBUTION REPORT (Total Txns: 3000) ===
+DUPLICATE_EVENT          :   20 txns (0.67%)
+LATE_EVENT_LONG          :    6 txns (0.20%)
+LATE_EVENT_SHORT         :   29 txns (0.97%)
+MISSING_TERMINAL_STUCK   :   11 txns (0.37%)
+OUT_OF_ORDER             :   11 txns (0.37%)
+POISON_RECORD            :    5 txns (0.17%)
+TERMINAL_CONFLICT        :    3 txns (0.10%)

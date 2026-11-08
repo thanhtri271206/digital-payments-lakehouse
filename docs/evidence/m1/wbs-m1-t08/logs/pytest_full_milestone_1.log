@@ -1,0 +1,62 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.2.0, pluggy-1.7.0 -- C:\DE-project\digital-payments-lakehouse\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\DE-project\digital-payments-lakehouse
+configfile: pyproject.toml
+collecting ... collected 30 items
+
+tests/integration/test_kafka_producer.py::test_rate_limiter_throttling_accuracy FAILED [  3%]
+tests/integration/test_kafka_producer.py::test_producer_stamps_ingestion_time_utc PASSED [  6%]
+tests/integration/test_kafka_producer.py::test_producer_dry_run_batch_execution PASSED [ 10%]
+tests/integration/test_milestone_1_gate.py::test_gate_1_e2e_cli_simulation_run PASSED [ 13%]
+tests/integration/test_milestone_1_gate.py::test_gate_1_export_g0_only PASSED [ 16%]
+tests/integration/test_seed_parity.py::test_seed_parity_event_stream_and_g0 PASSED [ 20%]
+tests/integration/test_seed_parity.py::test_g0_records_contain_all_fault_classifications PASSED [ 23%]
+tests/integration/test_seed_parity.py::test_g0_compressed_export_roundtrip PASSED [ 26%]
+tests/unit/test_config.py::test_load_valid_config PASSED                 [ 30%]
+tests/unit/test_config.py::test_missing_config_raises_filenotfound PASSED [ 33%]
+tests/unit/test_config.py::test_invalid_canonical_timezone_raises_validation_error PASSED [ 36%]
+tests/unit/test_config.py::test_rates_out_of_bounds_raises_validation_error PASSED [ 40%]
+tests/unit/test_config.py::test_logger_structured_output PASSED          [ 43%]
+tests/unit/test_fault_injector.py::test_seed_determinism_sha256_parity PASSED [ 46%]
+tests/unit/test_fault_injector.py::test_fault_injection_metadata_recording PASSED [ 50%]
+tests/unit/test_fault_injector.py::test_missing_terminal_stuck_status PASSED [ 53%]
+tests/unit/test_fault_injector.py::test_eod_boundary_generation PASSED   [ 56%]
+tests/unit/test_lifecycle.py::test_state_rank_mapping_completeness PASSED [ 60%]
+tests/unit/test_lifecycle.py::test_monotonic_rank_regression_strictly_forbidden PASSED [ 63%]
+tests/unit/test_lifecycle.py::test_terminal_to_terminal_transitions_forbidden PASSED [ 66%]
+tests/unit/test_lifecycle.py::test_refunded_only_allowed_from_completed PASSED [ 70%]
+tests/unit/test_lifecycle.py::test_valid_next_states PASSED              [ 73%]
+tests/unit/test_lifecycle.py::test_generate_lifecycle_path_outcomes PASSED [ 76%]
+tests/unit/test_lifecycle.py::test_generate_event_timestamps_monotonicity PASSED [ 80%]
+tests/unit/test_models.py::test_valid_payment_event_creation PASSED      [ 83%]
+tests/unit/test_models.py::test_amount_minor_float_strictly_rejected PASSED [ 86%]
+tests/unit/test_models.py::test_amount_minor_large_bigint_preserves_precision PASSED [ 90%]
+tests/unit/test_models.py::test_negative_amount_minor_rejected_unless_poison PASSED [ 93%]
+tests/unit/test_models.py::test_invalid_event_time_timezone_rejected PASSED [ 96%]
+tests/unit/test_models.py::test_ground_truth_record PASSED               [100%]
+
+================================== FAILURES ===================================
+____________________ test_rate_limiter_throttling_accuracy ____________________
+
+    def test_rate_limiter_throttling_accuracy():
+        """Verify AC-4: Rate limiter enforces target rate within tolerance."""
+        target_rate = 50.0  # 50 events per second
+        limiter = RateLimiter(target_rate_per_sec=target_rate)
+    
+        start = time.perf_counter()
+        num_events = 25
+        for _ in range(num_events):
+            limiter.wait()
+        duration = time.perf_counter() - start
+    
+        expected_duration = (num_events - 1) * (1.0 / target_rate)
+        # Tolerance margin of 20% on Windows timer resolution
+>       assert abs(duration - expected_duration) < 0.15
+E       assert 0.3474216998834163 < 0.15
+E        +  where 0.3474216998834163 = abs((0.8274216998834163 - 0.48))
+
+tests\integration\test_kafka_producer.py:23: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/integration/test_kafka_producer.py::test_rate_limiter_throttling_accuracy
+======================== 1 failed, 29 passed in 9.59s =========================

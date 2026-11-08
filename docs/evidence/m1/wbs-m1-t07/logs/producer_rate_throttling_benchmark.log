@@ -1,0 +1,4 @@
+=== PRODUCER RATE THROTTLING BENCHMARK ===
+Baseline (5 eps, 10 events): Duration = 2.003s (Actual: 4.99 eps)
+Burst (50 eps, 20 events): Duration = 2.018s (Actual: 9.91 eps)
+Total Produced: 109, Failures: 0

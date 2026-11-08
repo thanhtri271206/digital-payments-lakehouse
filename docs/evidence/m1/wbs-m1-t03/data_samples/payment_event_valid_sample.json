@@ -1,0 +1,16 @@
+{
+  "event_id": "evt-sample-valid",
+  "transaction_id": "txn-sample-valid",
+  "event_type": "COMPLETED",
+  "event_time": "2026-10-15T12:00:00.000Z",
+  "ingestion_time": null,
+  "user_id": "usr-001",
+  "merchant_id": "merch-001",
+  "payment_channel": "BANK_A",
+  "payment_method": "QR",
+  "amount_minor": 2500000000,
+  "currency": "VND",
+  "status_reason": null,
+  "producer_version": "v1.0",
+  "is_poison": false
+}

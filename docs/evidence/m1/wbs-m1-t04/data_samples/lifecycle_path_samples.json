@@ -1,0 +1,32 @@
+{
+  "COMPLETED": [
+    "INITIATED",
+    "PAYMENT_METHOD_SELECTED",
+    "AUTHORIZED",
+    "PROCESSING",
+    "COMPLETED"
+  ],
+  "REFUNDED": [
+    "INITIATED",
+    "PAYMENT_METHOD_SELECTED",
+    "AUTHORIZED",
+    "PROCESSING",
+    "COMPLETED",
+    "REFUNDED"
+  ],
+  "FAILED": [
+    "INITIATED",
+    "PAYMENT_METHOD_SELECTED",
+    "AUTHORIZED",
+    "FAILED"
+  ],
+  "CANCELLED": [
+    "INITIATED",
+    "PAYMENT_METHOD_SELECTED",
+    "CANCELLED"
+  ],
+  "EXPIRED": [
+    "INITIATED",
+    "EXPIRED"
+  ]
+}
