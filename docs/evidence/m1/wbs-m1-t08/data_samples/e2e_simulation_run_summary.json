@@ -1,0 +1,10 @@
+{
+  "milestone": "Milestone 1",
+  "seed": 20260930,
+  "total_transactions": 1000,
+  "events_file": "data/events_raw/events_seed_20260930.jsonl",
+  "ground_truth_file": "data/ground_truth/G0_events_seed_20260930.jsonl",
+  "test_suite_status": "30/30 PASSED",
+  "all_invariants_enforced": true,
+  "gate_1_status": "READY_FOR_SIGNOFF"
+}

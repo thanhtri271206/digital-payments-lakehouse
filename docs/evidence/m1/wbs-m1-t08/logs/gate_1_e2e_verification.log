@@ -1,0 +1,14 @@
+﻿{"timestamp": "2026-11-05T18:12:02.300778Z", "level": "INFO", "message": "Starting Payment Simulation: seed=20260930, count=1000, rate=0.0 eps, mode=both, dry_run=True", "module": "__main__", "function": "run", "line": 35, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:02.872461Z", "level": "INFO", "message": "Generated 4810 events across 1000 transactions.", "module": "__main__", "function": "run", "line": 45, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:02.891007Z", "level": "INFO", "message": "Ground Truth G0 exported successfully to: data\\ground_truth\\G0_events_seed_20260930.jsonl", "module": "__main__", "function": "run", "line": 50, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:02.950778Z", "level": "INFO", "message": "Raw events exported to file: data\\events_raw\\events_seed_20260930.jsonl", "module": "__main__", "function": "run", "line": 66, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:02.950778Z", "level": "INFO", "message": "Publishing events to Kafka topic 'payment.events.raw' (dry_run=True)...", "module": "__main__", "function": "run", "line": 76, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:03.056152Z", "level": "INFO", "message": "Published 4810 events to Kafka. Failed: 0", "module": "__main__", "function": "run", "line": 81, "extra": {}}
+
+{"timestamp": "2026-11-05T18:12:03.056793Z", "level": "INFO", "message": "Simulation Run Summary: {\"seed\": 20260930, \"transactions_generated\": 1000, \"events_generated\": 4810, \"events_file_written\": 4810, \"events_kafka_produced\": 4810, \"g0_file\": \"data\\\\ground_truth\\\\G0_events_seed_20260930.jsonl\", \"duration_seconds\": 0.755, \"status\": \"SUCCESS\"}", "module": "__main__", "function": "run", "line": 94, "extra": {}}
+
