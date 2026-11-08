@@ -7,7 +7,14 @@ authors = [
     { name = "thanhtri271206", email = "thanhtri270106@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "confluent-kafka>=2.16.1",
+    "loguru>=0.7.3",
+    "pydantic>=2.14.3",
+    "pytest>=9.2.0",
+    "pyyaml>=6.0.3",
+    "typer>=0.27.3",
+]
 
 [project.scripts]
 digital-payments-lakehouse = "digital_payments_lakehouse:main"
